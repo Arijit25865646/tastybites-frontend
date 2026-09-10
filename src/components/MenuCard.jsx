@@ -16,7 +16,7 @@ const MenuCard = ({ item }) => {
       {/* Content */}
       <div className="p-5">
 
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex justify-between items-center mb-5">
           <h2 className="text-xl font-bold text-gray-900">
             {item.name}
           </h2>
@@ -25,10 +25,6 @@ const MenuCard = ({ item }) => {
             ₹{item.price}
           </span>
         </div>
-
-        <p className="text-gray-600 mb-5">
-          {item.description}
-        </p>
 
         <Link
           to={`/menu/${item._id}`}

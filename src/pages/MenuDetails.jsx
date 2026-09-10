@@ -1,33 +1,44 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import Cookies from "js-cookie";
 import { toast } from "sonner";
 import api from "../api/axios";
 
 const MenuDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [menuItem, setMenuItem] = useState(null);
   const [loading, setLoading] = useState(true);
 
- useEffect(() => {
-  const fetchMenuItem = async () => {
-    try {
-      const response = await api.get(`/menu-items/${id}`);
+  useEffect(() => {
+    const token = Cookies.get("token");
 
-      if (response.data.success) {
-        setMenuItem(response.data.data);
-      }
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Failed to load menu item"
-      );
-    } finally {
-      setLoading(false);
+    // Check if user is logged in
+    if (!token) {
+      toast.error("Please login to view menu details");
+      navigate("/login");
+      return;
     }
-  };
 
-  fetchMenuItem();
-}, [id]);
+    const fetchMenuItem = async () => {
+      try {
+        const response = await api.get(`/menu-items/${id}`);
+
+        if (response.data.success) {
+          setMenuItem(response.data.data);
+        }
+      } catch (error) {
+        toast.error(
+          error.response?.data?.message || "Failed to load menu item"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMenuItem();
+  }, [id, navigate]);
 
   if (loading) {
     return (
