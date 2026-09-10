@@ -1,6 +1,4 @@
 import { Link } from "react-router-dom";
-import MenuCard from "../components/MenuCard";
-import menuData from "../data/menuData";
 
 const Home = () => {
   return (
@@ -102,41 +100,6 @@ const Home = () => {
             </div>
 
           </div>
-        </div>
-      </section>
-
-      {/* Menu Preview Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6">
-
-          {/* Section Heading */}
-          <div className="text-center">
-
-            <p className="text-red-600 font-semibold">
-              OUR MENU
-            </p>
-
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-2">
-              Explore Our Delicious Menu
-            </h2>
-
-            <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
-              Discover our selection of delicious dishes prepared
-              with fresh ingredients and lots of love.
-            </p>
-
-          </div>
-
-          {/* Menu Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
-            {menuData.map((item) => (
-              <MenuCard
-                key={item.id}
-                item={item}
-              />
-            ))}
-          </div>
-
         </div>
       </section>
     </main>
