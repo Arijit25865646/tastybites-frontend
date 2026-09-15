@@ -6,7 +6,7 @@ import AdminProtected from "../components/AdminProtected";
 
 // ================= USER PAGES =================
 
-import Home from "../pages/home";
+import Home from "../pages/Home";
 import Menu from "../pages/Menu";
 import MenuDetails from "../pages/MenuDetails";
 import Login from "../pages/Login";
