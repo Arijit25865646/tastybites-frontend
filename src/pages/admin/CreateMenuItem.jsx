@@ -2,6 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
+import {
+  ArrowLeft,
+  ImagePlus,
+  Plus,
+  Utensils,
+} from "lucide-react";
 import api from "../../api/axios";
 
 const CreateMenuItem = () => {
@@ -19,6 +25,7 @@ const CreateMenuItem = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // ================= HANDLE INPUT CHANGE =================
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -28,6 +35,7 @@ const CreateMenuItem = () => {
     }));
   };
 
+  // ================= HANDLE AVAILABILITY =================
   const handleAvailability = (e) => {
     setFormData((prev) => ({
       ...prev,
@@ -35,6 +43,7 @@ const CreateMenuItem = () => {
     }));
   };
 
+  // ================= HANDLE IMAGE =================
   const handleImageChange = (e) => {
     const file = e.target.files[0];
 
@@ -48,6 +57,7 @@ const CreateMenuItem = () => {
     }
   };
 
+  // ================= SUBMIT =================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -87,7 +97,10 @@ const CreateMenuItem = () => {
       });
 
       if (response.data.success) {
-        toast.success(response.data.message || "Menu item created successfully");
+        toast.success(
+          response.data.message ||
+            "Menu item created successfully"
+        );
 
         setFormData({
           name: "",
@@ -113,29 +126,59 @@ const CreateMenuItem = () => {
   };
 
   return (
-    <div>
-      {/* Page Heading */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Add Menu Item
-        </h1>
+    <div className="min-h-screen bg-[#FFFCF2]">
 
-        <p className="text-gray-600 mt-2">
-          Add a new item to the TastyBites menu.
-        </p>
+      {/* =====================================================
+          PAGE HEADER
+      ===================================================== */}
+      <div className="mb-8">
+
+        <button
+          onClick={() => navigate("/admin/menu")}
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-[#166534] font-semibold transition mb-5"
+        >
+          <ArrowLeft size={18} />
+          Back to Menu Items
+        </button>
+
+        <div className="flex items-center gap-3">
+
+          <div className="w-12 h-12 rounded-xl bg-[#ECFDF5] flex items-center justify-center">
+            <Plus
+              size={25}
+              className="text-[#166534]"
+            />
+          </div>
+
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-900">
+              Add Menu Item
+            </h1>
+
+            <p className="text-gray-600 mt-1">
+              Add a new delicious item to the TastyBites menu.
+            </p>
+          </div>
+
+        </div>
       </div>
 
-      {/* Form */}
-      <div className="bg-white rounded-xl shadow-sm mt-8 p-6 md:p-8 max-w-4xl">
+
+      {/* =====================================================
+          FORM CARD
+      ===================================================== */}
+      <div className="bg-white border border-[#E8E1D0] rounded-2xl shadow-sm p-6 md:p-8 max-w-4xl">
+
         <form onSubmit={handleSubmit}>
 
-          {/* Name */}
+          {/* ================= NAME ================= */}
           <div>
+
             <label
               htmlFor="name"
-              className="block text-sm font-semibold text-gray-700 mb-2"
+              className="block text-sm font-bold text-gray-700 mb-2"
             >
-              Name
+              Menu Item Name
             </label>
 
             <input
@@ -144,16 +187,19 @@ const CreateMenuItem = () => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Enter menu item name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-red-500"
+              placeholder="Example: Chicken Biryani"
+              className="w-full px-4 py-3 border border-[#D9D2C2] rounded-xl outline-none bg-[#FFFCF2] text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition"
             />
+
           </div>
 
-          {/* Description */}
+
+          {/* ================= DESCRIPTION ================= */}
           <div className="mt-6">
+
             <label
               htmlFor="description"
-              className="block text-sm font-semibold text-gray-700 mb-2"
+              className="block text-sm font-bold text-gray-700 mb-2"
             >
               Description
             </label>
@@ -163,20 +209,25 @@ const CreateMenuItem = () => {
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Enter menu item description"
+              placeholder="Describe the dish, ingredients and taste..."
               rows="5"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none resize-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-4 py-3 border border-[#D9D2C2] rounded-xl outline-none resize-none bg-[#FFFCF2] text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition"
             />
+
           </div>
 
-          {/* Category + Price */}
+
+          {/* =================================================
+              CATEGORY + PRICE
+          ================================================= */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
 
             {/* Category */}
             <div>
+
               <label
                 htmlFor="category"
-                className="block text-sm font-semibold text-gray-700 mb-2"
+                className="block text-sm font-bold text-gray-700 mb-2"
               >
                 Category
               </label>
@@ -186,102 +237,204 @@ const CreateMenuItem = () => {
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none bg-white focus:ring-2 focus:ring-red-500"
+                className="w-full px-4 py-3 border border-[#D9D2C2] rounded-xl outline-none bg-[#FFFCF2] text-gray-900 focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition"
               >
-                <option value="">Select Category</option>
-                <option value="Starter">Starter</option>
-                <option value="Main Course">Main Course</option>
-                <option value="Dessert">Dessert</option>
-                <option value="Beverage">Beverage</option>
+                <option value="">
+                  Select Category
+                </option>
+
+                <option value="Starter">
+                  Starter
+                </option>
+
+                <option value="Main Course">
+                  Main Course
+                </option>
+
+                <option value="Dessert">
+                  Dessert
+                </option>
+
+                <option value="Beverage">
+                  Beverage
+                </option>
               </select>
+
             </div>
+
 
             {/* Price */}
             <div>
+
               <label
                 htmlFor="price"
-                className="block text-sm font-semibold text-gray-700 mb-2"
+                className="block text-sm font-bold text-gray-700 mb-2"
               >
                 Price
               </label>
 
-              <input
-                type="number"
-                id="price"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                placeholder="Enter price"
-                min="0"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-red-500"
-              />
+              <div className="relative">
+
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#166534] font-bold">
+                  ₹
+                </span>
+
+                <input
+                  type="number"
+                  id="price"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleChange}
+                  placeholder="Enter price"
+                  min="0"
+                  className="w-full pl-9 pr-4 py-3 border border-[#D9D2C2] rounded-xl outline-none bg-[#FFFCF2] text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition"
+                />
+
+              </div>
+
             </div>
 
           </div>
 
-          {/* Image */}
+
+          {/* =================================================
+              IMAGE
+          ================================================= */}
           <div className="mt-6">
+
             <label
               htmlFor="image"
-              className="block text-sm font-semibold text-gray-700 mb-2"
+              className="block text-sm font-bold text-gray-700 mb-2"
             >
-              Image
+              Food Image
             </label>
 
-            <input
-              type="file"
-              id="image"
-              name="image"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-            />
+            <div className="border-2 border-dashed border-[#D9D2C2] rounded-2xl p-6 bg-[#FFFCF2] hover:border-[#166534]/50 transition">
+
+              <div className="flex flex-col items-center justify-center text-center">
+
+                <div className="w-14 h-14 rounded-full bg-[#ECFDF5] flex items-center justify-center">
+
+                  <ImagePlus
+                    size={27}
+                    className="text-[#166534]"
+                  />
+
+                </div>
+
+                <p className="font-semibold text-gray-800 mt-3">
+                  Upload food image
+                </p>
+
+                <p className="text-sm text-gray-500 mt-1">
+                  JPG, PNG or other image formats
+                </p>
+
+                <input
+                  type="file"
+                  id="image"
+                  name="image"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="mt-5 w-full max-w-sm text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:bg-[#166534] file:text-white file:font-semibold hover:file:bg-[#14532D] file:cursor-pointer"
+                />
+
+              </div>
+
+            </div>
+
 
             {/* Image Preview */}
             {imagePreview && (
-              <div className="mt-4">
-                <p className="text-sm text-gray-500 mb-2">
+              <div className="mt-5">
+
+                <p className="text-sm font-semibold text-gray-600 mb-2">
                   Image Preview
                 </p>
 
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-40 h-40 object-cover rounded-lg border"
-                />
+                <div className="relative w-48 h-48 rounded-2xl overflow-hidden border border-[#E8E1D0] shadow-sm">
+
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+
+                </div>
+
               </div>
             )}
+
           </div>
 
-          {/* Availability */}
-          <div className="mt-6">
+
+          {/* =================================================
+              AVAILABILITY
+          ================================================= */}
+          <div className="mt-6 p-4 rounded-xl bg-[#F3F7ED] border border-[#D9EAD3]">
+
             <label className="flex items-center gap-3 cursor-pointer">
+
               <input
                 type="checkbox"
                 checked={formData.availability}
                 onChange={handleAvailability}
-                className="w-5 h-5 accent-red-600"
+                className="w-5 h-5 accent-[#166534]"
               />
 
-              <span className="text-sm font-semibold text-gray-700">
-                Item is available
-              </span>
+              <div>
+
+                <p className="font-bold text-gray-800">
+                  Item is available
+                </p>
+
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Customers can see and order this item.
+                </p>
+
+              </div>
+
             </label>
+
           </div>
 
-          {/* Submit */}
-          <div className="mt-8">
+
+          {/* =================================================
+              BUTTONS
+          ================================================= */}
+          <div className="flex flex-col sm:flex-row gap-3 mt-8">
+
+            {/* Cancel */}
+            <button
+              type="button"
+              onClick={() => navigate("/admin/menu")}
+              className="sm:w-auto px-6 py-3 rounded-xl border border-[#166534] text-[#166534] font-semibold hover:bg-[#ECFDF5] transition"
+            >
+              Cancel
+            </button>
+
+
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+              className="sm:w-auto inline-flex items-center justify-center gap-2 bg-[#166534] text-white px-7 py-3 rounded-xl font-semibold hover:bg-[#14532D] transition disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
             >
-              {loading ? "Adding..." : "Add Menu Item"}
+
+              <Utensils size={18} />
+
+              {loading
+                ? "Adding..."
+                : "Add Menu Item"}
+
             </button>
+
           </div>
 
         </form>
+
       </div>
+
     </div>
   );
 };

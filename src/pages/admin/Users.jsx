@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
+import {
+  Users as UsersIcon,
+  Trash2,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import api from "../../api/axios";
 
 const Users = () => {
@@ -8,7 +14,7 @@ const Users = () => {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
 
-  // Fetch Users
+  // ================= FETCH USERS =================
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -36,7 +42,7 @@ const Users = () => {
     fetchUsers();
   }, []);
 
-  // Delete User
+  // ================= DELETE USER =================
   const handleDelete = async (id) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this user?"
@@ -63,7 +69,6 @@ const Users = () => {
             "User deleted successfully"
         );
 
-        // Remove user from UI
         setUsers((prevUsers) =>
           prevUsers.filter((user) => user._id !== id)
         );
@@ -78,126 +83,346 @@ const Users = () => {
     }
   };
 
-  // Loading State
+  // ================= LOADING =================
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-lg font-semibold text-gray-600">
-          Loading users...
-        </p>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#D9EAD3] border-t-[#166534] rounded-full animate-spin mx-auto" />
+
+          <p className="text-gray-600 font-semibold mt-4">
+            Loading users...
+          </p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div>
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Users
-        </h1>
+  // ================= USER COUNT =================
+  const adminCount = users.filter(
+    (user) => user.role === "admin"
+  ).length;
 
-        <p className="text-gray-600 mt-2">
-          Manage registered users of TastyBites.
-        </p>
+  const normalUserCount = users.filter(
+    (user) => user.role !== "admin"
+  ).length;
+
+  return (
+    <div className="min-h-full">
+
+      {/* ================= PAGE HEADER ================= */}
+      <div className="mb-8">
+
+        <div className="flex items-center gap-3">
+
+          <div className="w-12 h-12 rounded-xl bg-[#ECFDF5] flex items-center justify-center">
+            <UsersIcon
+              size={25}
+              className="text-[#166534]"
+            />
+          </div>
+
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-900">
+              Users
+            </h1>
+
+            <p className="text-gray-600 mt-1">
+              Manage registered users of TastyBites.
+            </p>
+          </div>
+
+        </div>
+
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white rounded-xl shadow-sm mt-8 overflow-hidden">
+
+      {/* ================= USER STATISTICS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+
+        {/* Total Users */}
+        <div className="bg-white border border-[#E8E1D0] rounded-2xl p-5 shadow-sm">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <p className="text-sm font-medium text-gray-500">
+                Total Users
+              </p>
+
+              <p className="text-3xl font-extrabold text-gray-900 mt-1">
+                {users.length}
+              </p>
+            </div>
+
+            <div className="w-11 h-11 rounded-xl bg-[#ECFDF5] flex items-center justify-center">
+              <UsersIcon
+                size={22}
+                className="text-[#166534]"
+              />
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* Regular Users */}
+        <div className="bg-white border border-[#E8E1D0] rounded-2xl p-5 shadow-sm">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <p className="text-sm font-medium text-gray-500">
+                Registered Users
+              </p>
+
+              <p className="text-3xl font-extrabold text-gray-900 mt-1">
+                {normalUserCount}
+              </p>
+            </div>
+
+            <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center">
+              <UserRound
+                size={22}
+                className="text-blue-600"
+              />
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* Admins */}
+        <div className="bg-white border border-[#E8E1D0] rounded-2xl p-5 shadow-sm">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+              <p className="text-sm font-medium text-gray-500">
+                Administrators
+              </p>
+
+              <p className="text-3xl font-extrabold text-gray-900 mt-1">
+                {adminCount}
+              </p>
+            </div>
+
+            <div className="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center">
+              <ShieldCheck
+                size={22}
+                className="text-purple-600"
+              />
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* ================= USERS TABLE ================= */}
+      <div className="bg-white border border-[#E8E1D0] rounded-2xl shadow-sm overflow-hidden">
+
+        {/* Table Header */}
+        <div className="px-6 py-5 border-b border-[#E8E1D0]">
+
+          <h2 className="text-xl font-bold text-gray-900">
+            Registered Users
+          </h2>
+
+          <p className="text-sm text-gray-500 mt-1">
+            View and manage TastyBites user accounts.
+          </p>
+
+        </div>
+
+
+        {/* Table */}
         <div className="overflow-x-auto">
+
           <table className="w-full">
+
             <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">
+              <tr className="bg-[#FFFCF2] text-left">
+
+                <th className="px-6 py-4 text-sm font-bold text-gray-600">
                   Name
                 </th>
 
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">
+                <th className="px-6 py-4 text-sm font-bold text-gray-600">
                   Email
                 </th>
 
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">
+                <th className="px-6 py-4 text-sm font-bold text-gray-600">
                   Role
                 </th>
 
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">
+                <th className="px-6 py-4 text-sm font-bold text-gray-600">
                   Registration Date
                 </th>
 
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">
+                <th className="px-6 py-4 text-sm font-bold text-gray-600">
                   Action
                 </th>
+
               </tr>
             </thead>
 
+
             <tbody>
-              {users.map((user) => (
-                <tr
-                  key={user._id}
-                  className="border-t border-gray-100"
-                >
-                  {/* Name */}
-                  <td className="px-6 py-4 font-medium text-gray-900">
-                    {user.name}
+
+              {users.length === 0 ? (
+
+                <tr>
+
+                  <td
+                    colSpan="5"
+                    className="text-center py-16"
+                  >
+
+                    <div className="w-16 h-16 bg-[#ECFDF5] rounded-full flex items-center justify-center mx-auto">
+
+                      <UsersIcon
+                        size={30}
+                        className="text-[#166534]"
+                      />
+
+                    </div>
+
+                    <p className="text-gray-900 font-bold mt-4">
+                      No users found
+                    </p>
+
+                    <p className="text-gray-500 text-sm mt-1">
+                      There are currently no registered users.
+                    </p>
+
                   </td>
 
-                  {/* Email */}
-                  <td className="px-6 py-4 text-gray-600">
-                    {user.email}
-                  </td>
-
-                  {/* Role */}
-                  <td className="px-6 py-4">
-                    {user.role === "admin" ? (
-                      <span className="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
-                        Admin
-                      </span>
-                    ) : (
-                      <span className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-                        User
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Registration Date */}
-                  <td className="px-6 py-4 text-gray-600">
-                    {new Date(user.createdAt).toLocaleDateString(
-                      "en-GB",
-                      {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      }
-                    )}
-                  </td>
-
-                  {/* Delete */}
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => handleDelete(user._id)}
-                      disabled={deletingId === user._id}
-                      className="px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {deletingId === user._id
-                        ? "Deleting..."
-                        : "Delete"}
-                    </button>
-                  </td>
                 </tr>
-              ))}
+
+              ) : (
+
+                users.map((user) => (
+
+                  <tr
+                    key={user._id}
+                    className="border-t border-[#E8E1D0] hover:bg-[#FFFCF2] transition"
+                  >
+
+                    {/* Name */}
+                    <td className="px-6 py-5">
+
+                      <div className="flex items-center gap-3">
+
+                        <div className="w-10 h-10 rounded-full bg-[#166534] text-white flex items-center justify-center font-bold">
+
+                          {user.name?.charAt(0).toUpperCase()}
+
+                        </div>
+
+                        <span className="font-semibold text-gray-900">
+                          {user.name}
+                        </span>
+
+                      </div>
+
+                    </td>
+
+
+                    {/* Email */}
+                    <td className="px-6 py-5 text-gray-600">
+                      {user.email}
+                    </td>
+
+
+                    {/* Role */}
+                    <td className="px-6 py-5">
+
+                      {user.role === "admin" ? (
+
+                        <span className="inline-flex items-center gap-1.5 bg-purple-100 text-purple-700 px-3 py-1.5 rounded-full text-sm font-semibold">
+
+                          <ShieldCheck size={15} />
+
+                          Admin
+
+                        </span>
+
+                      ) : (
+
+                        <span className="inline-flex items-center gap-1.5 bg-[#ECFDF5] text-[#166534] px-3 py-1.5 rounded-full text-sm font-semibold">
+
+                          <UserRound size={15} />
+
+                          User
+
+                        </span>
+
+                      )}
+
+                    </td>
+
+
+                    {/* Registration Date */}
+                    <td className="px-6 py-5 text-gray-600">
+
+                      {user.createdAt
+                        ? new Date(
+                            user.createdAt
+                          ).toLocaleDateString(
+                            "en-GB",
+                            {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            }
+                          )
+                        : "N/A"}
+
+                    </td>
+
+
+                    {/* Delete */}
+                    <td className="px-6 py-5">
+
+                      <button
+                        onClick={() =>
+                          handleDelete(user._id)
+                        }
+                        disabled={
+                          deletingId === user._id
+                        }
+                        className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+
+                        <Trash2 size={16} />
+
+                        {deletingId === user._id
+                          ? "Deleting..."
+                          : "Delete"}
+
+                      </button>
+
+                    </td>
+
+                  </tr>
+
+                ))
+
+              )}
+
             </tbody>
+
           </table>
+
         </div>
 
-        {/* Empty State */}
-        {users.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">
-              No users found.
-            </p>
-          </div>
-        )}
       </div>
+
     </div>
   );
 };

@@ -4,10 +4,24 @@ import Cookies from "js-cookie";
 import { toast } from "sonner";
 import api from "../../api/axios";
 
+import {
+  Utensils,
+  Plus,
+  Pencil,
+  Trash2,
+  CheckCircle,
+  CircleX,
+  LayoutList,
+} from "lucide-react";
+
 const MenuItems = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+
+  // =========================================================
+  // FETCH MENU ITEMS
+  // =========================================================
 
   useEffect(() => {
     const fetchMenuItems = async () => {
@@ -36,7 +50,10 @@ const MenuItems = () => {
     fetchMenuItems();
   }, []);
 
-  // Delete Menu Item
+  // =========================================================
+  // DELETE MENU ITEM
+  // =========================================================
+
   const handleDelete = async (id) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this menu item?"
@@ -78,161 +95,493 @@ const MenuItems = () => {
     }
   };
 
+  // =========================================================
+  // LOADING
+  // =========================================================
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-lg font-semibold text-gray-600">
-          Loading menu items...
-        </p>
+      <div className="min-h-[70vh] bg-[#FFFCF2] flex items-center justify-center">
+
+        <div className="text-center">
+
+          <div className="w-12 h-12 border-4 border-[#D9EAD3] border-t-[#166534] rounded-full animate-spin mx-auto" />
+
+          <p className="text-lg font-semibold text-gray-700 mt-4">
+            Loading menu items...
+          </p>
+
+        </div>
+
       </div>
     );
   }
 
-  return (
-    <div>
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Menu Items
-          </h1>
+  // =========================================================
+  // MAIN PAGE
+  // =========================================================
 
-          <p className="text-gray-600 mt-2">
-            Manage all menu items in TastyBites.
-          </p>
+  return (
+    <div className="min-h-screen bg-[#FFFCF2] p-6 md:p-8">
+
+      <div className="max-w-7xl mx-auto">
+
+        {/* =====================================================
+            PAGE HEADER
+        ===================================================== */}
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 mb-8">
+
+          <div>
+
+            <div className="flex items-center gap-2 text-[#166534] mb-2">
+
+              <LayoutList size={20} />
+
+              <p className="font-bold tracking-widest text-sm uppercase">
+                Restaurant Menu
+              </p>
+
+            </div>
+
+            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900">
+              Menu Items
+            </h1>
+
+            <p className="text-gray-500 mt-2">
+              Manage all dishes available at TastyBites.
+            </p>
+
+          </div>
+
+
+          {/* Add Menu Item */}
+
+          <Link
+            to="/admin/menu/create"
+            className="inline-flex items-center justify-center gap-2 bg-[#166534] text-white px-5 py-3 rounded-xl font-semibold hover:bg-[#14532D] transition shadow-md"
+          >
+            <Plus size={19} />
+            Add Menu Item
+          </Link>
+
         </div>
 
-        <Link
-          to="/admin/menu/create"
-          className="bg-red-600 text-white px-5 py-3 rounded-lg font-semibold hover:bg-red-700 transition"
-        >
-          + Add Menu Item
-        </Link>
-      </div>
 
-      {/* Menu Items Table */}
-      <div className="bg-white rounded-xl shadow-sm mt-8 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        {/* =====================================================
+            MENU SUMMARY
+        ===================================================== */}
 
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">
-                  Image
-                </th>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
 
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">
-                  Name
-                </th>
+          {/* Total */}
 
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">
-                  Category
-                </th>
+          <div className="bg-white border border-[#E8E1D0] rounded-2xl p-5 shadow-sm">
 
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">
-                  Price
-                </th>
+            <div className="flex items-center gap-3">
 
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">
-                  Availability
-                </th>
+              <div className="w-11 h-11 rounded-xl bg-[#ECFDF5] flex items-center justify-center">
 
-                <th className="px-6 py-4 text-sm font-semibold text-gray-600">
-                  Actions
-                </th>
-              </tr>
-            </thead>
+                <Utensils
+                  size={22}
+                  className="text-[#166534]"
+                />
 
-            <tbody>
-              {menuItems.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="6"
-                    className="text-center py-10 text-gray-500"
-                  >
-                    No menu items found.
-                  </td>
+              </div>
+
+              <div>
+
+                <p className="text-sm text-gray-500 font-medium">
+                  Total Items
+                </p>
+
+                <p className="text-2xl font-extrabold text-gray-900">
+                  {menuItems.length}
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* Available */}
+
+          <div className="bg-white border border-[#E8E1D0] rounded-2xl p-5 shadow-sm">
+
+            <div className="flex items-center gap-3">
+
+              <div className="w-11 h-11 rounded-xl bg-[#ECFDF5] flex items-center justify-center">
+
+                <CheckCircle
+                  size={22}
+                  className="text-[#166534]"
+                />
+
+              </div>
+
+              <div>
+
+                <p className="text-sm text-gray-500 font-medium">
+                  Available
+                </p>
+
+                <p className="text-2xl font-extrabold text-[#166534]">
+                  {
+                    menuItems.filter(
+                      (item) => item.availability === true
+                    ).length
+                  }
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* Unavailable */}
+
+          <div className="bg-white border border-[#E8E1D0] rounded-2xl p-5 shadow-sm">
+
+            <div className="flex items-center gap-3">
+
+              <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center">
+
+                <CircleX
+                  size={22}
+                  className="text-red-500"
+                />
+
+              </div>
+
+              <div>
+
+                <p className="text-sm text-gray-500 font-medium">
+                  Unavailable
+                </p>
+
+                <p className="text-2xl font-extrabold text-red-500">
+                  {
+                    menuItems.filter(
+                      (item) => item.availability === false
+                    ).length
+                  }
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* =====================================================
+            MENU TABLE
+        ===================================================== */}
+
+        <div className="bg-white border border-[#E8E1D0] rounded-2xl shadow-sm overflow-hidden">
+
+          {/* Table Header */}
+
+          <div className="px-6 py-5 border-b border-[#E8E1D0]">
+
+            <div className="flex items-center gap-3">
+
+              <div className="w-10 h-10 rounded-xl bg-[#ECFDF5] flex items-center justify-center">
+
+                <Utensils
+                  size={20}
+                  className="text-[#166534]"
+                />
+
+              </div>
+
+              <div>
+
+                <h2 className="text-xl font-bold text-gray-900">
+                  All Menu Items
+                </h2>
+
+                <p className="text-sm text-gray-500 mt-1">
+                  View and manage your restaurant dishes.
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* ===================================================
+              TABLE
+          =================================================== */}
+
+          <div className="overflow-x-auto">
+
+            <table className="w-full min-w-[850px]">
+
+              <thead>
+
+                <tr className="bg-[#FFFCF2] border-b border-[#E8E1D0]">
+
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Image
+                  </th>
+
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Dish
+                  </th>
+
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Category
+                  </th>
+
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Price
+                  </th>
+
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Availability
+                  </th>
+
+                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+
                 </tr>
-              ) : (
-                menuItems.map((item) => (
-                  <tr
-                    key={item._id}
-                    className="border-t border-gray-100"
-                  >
-                    {/* Image */}
-                    <td className="px-6 py-4">
-                      <img
-                        src={item.image?.url}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                    </td>
 
-                    {/* Name */}
-                    <td className="px-6 py-4">
-                      <p className="font-semibold text-gray-900">
-                        {item.name}
-                      </p>
+              </thead>
 
-                      <p className="text-sm text-gray-500 mt-1 max-w-xs truncate">
-                        {item.description}
-                      </p>
-                    </td>
 
-                    {/* Category */}
-                    <td className="px-6 py-4 text-gray-600">
-                      {item.category}
-                    </td>
+              <tbody>
 
-                    {/* Price */}
-                    <td className="px-6 py-4 font-semibold text-gray-900">
-                      ₹{item.price}
-                    </td>
+                {menuItems.length === 0 ? (
 
-                    {/* Availability */}
-                    <td className="px-6 py-4">
-                      {item.availability ? (
-                        <span className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
-                          Available
-                        </span>
-                      ) : (
-                        <span className="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
-                          Unavailable
-                        </span>
-                      )}
-                    </td>
+                  <tr>
 
-                    {/* Actions */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                    <td
+                      colSpan="6"
+                      className="py-16 text-center"
+                    >
 
-                        <Link
-                          to={`/admin/menu/edit/${item._id}`}
-                          className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition"
-                        >
-                          Edit
-                        </Link>
+                      <div className="w-16 h-16 rounded-full bg-[#ECFDF5] flex items-center justify-center mx-auto">
 
-                        <button
-                          onClick={() => handleDelete(item._id)}
-                          disabled={deletingId === item._id}
-                          className="px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {deletingId === item._id
-                            ? "Deleting..."
-                            : "Delete"}
-                        </button>
+                        <Utensils
+                          size={28}
+                          className="text-[#166534]"
+                        />
 
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
 
-          </table>
+                      <h3 className="text-lg font-bold text-gray-800 mt-4">
+                        No Menu Items Found
+                      </h3>
+
+                      <p className="text-gray-500 mt-1">
+                        Add your first dish to the TastyBites menu.
+                      </p>
+
+                      <Link
+                        to="/admin/menu/create"
+                        className="inline-flex items-center gap-2 mt-5 bg-[#166534] text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-[#14532D] transition"
+                      >
+                        <Plus size={18} />
+                        Add Menu Item
+                      </Link>
+
+                    </td>
+
+                  </tr>
+
+                ) : (
+
+                  menuItems.map((item) => (
+
+                    <tr
+                      key={item._id}
+                      className="border-b border-[#F0EBDF] last:border-b-0 hover:bg-[#FFFCF2]/70 transition"
+                    >
+
+                      {/* =================================================
+                          IMAGE
+                      ================================================= */}
+
+                      <td className="px-6 py-4">
+
+                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 border border-[#E8E1D0]">
+
+                          {item.image?.url ? (
+
+                            <img
+                              src={item.image.url}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+
+                          ) : (
+
+                            <div className="w-full h-full flex items-center justify-center">
+
+                              <Utensils
+                                size={22}
+                                className="text-gray-400"
+                              />
+
+                            </div>
+
+                          )}
+
+                        </div>
+
+                      </td>
+
+
+                      {/* =================================================
+                          NAME
+                      ================================================= */}
+
+                      <td className="px-6 py-4">
+
+                        <div className="max-w-xs">
+
+                          <p className="font-bold text-gray-900">
+                            {item.name}
+                          </p>
+
+                          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                            {item.description}
+                          </p>
+
+                        </div>
+
+                      </td>
+
+
+                      {/* =================================================
+                          CATEGORY
+                      ================================================= */}
+
+                      <td className="px-6 py-4">
+
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-[#F3F7ED] text-[#166534] text-sm font-semibold">
+                          {item.category}
+                        </span>
+
+                      </td>
+
+
+                      {/* =================================================
+                          PRICE
+                      ================================================= */}
+
+                      <td className="px-6 py-4">
+
+                        <span className="font-extrabold text-gray-900">
+                          ₹{item.price}
+                        </span>
+
+                      </td>
+
+
+                      {/* =================================================
+                          AVAILABILITY
+                      ================================================= */}
+
+                      <td className="px-6 py-4">
+
+                        {item.availability ? (
+
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ECFDF5] text-[#166534] text-sm font-bold">
+
+                            <CheckCircle size={15} />
+
+                            Available
+
+                          </span>
+
+                        ) : (
+
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-600 text-sm font-bold">
+
+                            <CircleX size={15} />
+
+                            Unavailable
+
+                          </span>
+
+                        )}
+
+                      </td>
+
+
+                      {/* =================================================
+                          ACTIONS
+                      ================================================= */}
+
+                      <td className="px-6 py-4">
+
+                        <div className="flex items-center gap-2">
+
+                          {/* Edit */}
+
+                          <Link
+                            to={`/admin/menu/edit/${item._id}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#ECFDF5] text-[#166534] rounded-lg text-sm font-semibold hover:bg-[#D9EAD3] transition"
+                          >
+
+                            <Pencil size={15} />
+
+                            Edit
+
+                          </Link>
+
+
+                          {/* Delete */}
+
+                          <button
+                            onClick={() =>
+                              handleDelete(item._id)
+                            }
+                            disabled={
+                              deletingId === item._id
+                            }
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+
+                            <Trash2 size={15} />
+
+                            {deletingId === item._id
+                              ? "Deleting..."
+                              : "Delete"}
+
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  ))
+
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
         </div>
+
       </div>
+
     </div>
   );
 };
