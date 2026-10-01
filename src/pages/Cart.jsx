@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
+import api from "../api/axios";
+
 import {
   ArrowLeft,
   ShoppingCart,
@@ -21,70 +23,122 @@ const Cart = () => {
 
   // ================= CART STATE =================
 
-  const [cartItems, setCartItems] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("cart")) || [];
-    } catch {
-      return [];
-    }
-  });
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // ================= SAVE CART =================
+  // ================= FETCH CART =================
 
-  const saveCart = (updatedCart) => {
-    setCartItems(updatedCart);
+  useEffect(() => {
+    const fetchCart = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
-    localStorage.setItem(
-      "cart",
-      JSON.stringify(updatedCart)
-    );
+      try {
+        const response = await api.get("/cart", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-    // Notify Navbar / other components
-    window.dispatchEvent(new Event("cartUpdated"));
-  };
+        setCartItems(response.data.data || []);
+      } catch (error) {
+        console.error("Error fetching cart:", error);
+
+        toast.error(
+          error.response?.data?.message || "Failed to load cart"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCart();
+  }, [token]);
 
   // ================= UPDATE QUANTITY =================
 
-  const updateCart = (id, newQuantity) => {
+  const updateCart = async (id, newQuantity) => {
     if (newQuantity < 1) return;
 
-    const updatedCart = cartItems.map((item) =>
-      item._id === id
-        ? {
-            ...item,
-            quantity: newQuantity,
-          }
-        : item
-    );
+    try {
+      const response = await api.put(
+        `/cart/${id}`,
+        {
+          quantity: newQuantity,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-    saveCart(updatedCart);
+      setCartItems(response.data.data || []);
+
+      window.dispatchEvent(new Event("cartUpdated"));
+    } catch (error) {
+      console.error("Error updating cart:", error);
+
+      toast.error(
+        error.response?.data?.message || "Failed to update cart"
+      );
+    }
   };
 
   // ================= REMOVE ITEM =================
 
-  const removeItem = (id) => {
-    const updatedCart = cartItems.filter(
-      (item) => item._id !== id
-    );
+  const removeItem = async (id) => {
+    try {
+      const response = await api.delete(`/cart/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    saveCart(updatedCart);
+      setCartItems(response.data.data || []);
 
-    toast.success("Item removed from cart");
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      toast.success("Item removed from cart");
+    } catch (error) {
+      console.error("Error removing item:", error);
+
+      toast.error(
+        error.response?.data?.message || "Failed to remove item"
+      );
+    }
   };
 
   // ================= CLEAR CART =================
 
-  const clearCart = () => {
-    saveCart([]);
+  const clearCart = async () => {
+    try {
+      const response = await api.delete("/cart", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    toast.success("Cart cleared");
+      setCartItems(response.data.data || []);
+
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      toast.success("Cart cleared");
+    } catch (error) {
+      console.error("Error clearing cart:", error);
+
+      toast.error(
+        error.response?.data?.message || "Failed to clear cart"
+      );
+    }
   };
 
   // ================= TOTAL ITEMS =================
 
   const totalItems = cartItems.reduce(
-    (total, item) =>
-      total + (item.quantity || 1),
+    (total, item) => total + (item.quantity || 1),
     0
   );
 
@@ -92,9 +146,7 @@ const Cart = () => {
 
   const totalPrice = cartItems.reduce(
     (total, item) =>
-      total +
-      Number(item.price) *
-        (item.quantity || 1),
+      total + Number(item.price) * (item.quantity || 1),
     0
   );
 
@@ -105,16 +157,12 @@ const Cart = () => {
   if (!token) {
     return (
       <div className="min-h-screen bg-[#FFFCF2] flex items-center justify-center px-6">
-
         <div className="text-center bg-white border border-[#E8E1D0] rounded-3xl shadow-md p-10 max-w-md">
-
           <div className="w-20 h-20 bg-[#ECFDF5] rounded-full flex items-center justify-center mx-auto">
-
             <ShoppingCart
               size={38}
               className="text-[#166534]"
             />
-
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 mt-6">
@@ -132,9 +180,21 @@ const Cart = () => {
             <ShoppingCart size={18} />
             Login
           </button>
-
         </div>
+      </div>
+    );
+  }
 
+  // =================================================
+  // LOADING
+  // =================================================
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FFFCF2] flex items-center justify-center">
+        <p className="text-gray-500 text-lg">
+          Loading cart...
+        </p>
       </div>
     );
   }
@@ -146,9 +206,7 @@ const Cart = () => {
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-[#FFFCF2] px-6 py-12">
-
         <div className="max-w-5xl mx-auto">
-
           <Link
             to="/menu"
             className="inline-flex items-center gap-2 text-gray-600 hover:text-[#166534] font-semibold transition"
@@ -158,14 +216,11 @@ const Cart = () => {
           </Link>
 
           <div className="bg-white border border-[#E8E1D0] rounded-3xl shadow-md mt-8 py-20 px-6 text-center">
-
             <div className="w-20 h-20 bg-[#ECFDF5] rounded-full flex items-center justify-center mx-auto">
-
               <ShoppingBag
                 size={38}
                 className="text-[#166534]"
               />
-
             </div>
 
             <h1 className="text-3xl font-bold text-gray-900 mt-6">
@@ -183,11 +238,8 @@ const Cart = () => {
               <ShoppingCart size={18} />
               Explore Menu
             </Link>
-
           </div>
-
         </div>
-
       </div>
     );
   }
@@ -198,15 +250,12 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-[#FFFCF2] px-6 py-12">
-
       <div className="max-w-6xl mx-auto">
 
         {/* ================= PAGE HEADER ================= */}
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-
           <div>
-
             <p className="text-[#166534] font-bold tracking-widest text-sm uppercase">
               TastyBites
             </p>
@@ -217,12 +266,9 @@ const Cart = () => {
 
             <p className="text-gray-500 mt-2">
               {totalItems}{" "}
-              {totalItems === 1
-                ? "item"
-                : "items"}{" "}
+              {totalItems === 1 ? "item" : "items"}{" "}
               in your cart
             </p>
-
           </div>
 
           {/* Clear Cart */}
@@ -234,9 +280,7 @@ const Cart = () => {
             <Trash2 size={18} />
             Clear Cart
           </button>
-
         </div>
-
 
         {/* ================= MAIN CONTENT ================= */}
 
@@ -245,20 +289,16 @@ const Cart = () => {
           {/* ================= CART ITEMS ================= */}
 
           <div className="lg:col-span-2 space-y-5">
-
             {cartItems.map((item) => (
-
               <div
-                key={item._id}
+                key={item.menuItem}
                 className="bg-white border border-[#E8E1D0] rounded-2xl shadow-sm p-5"
               >
-
                 <div className="flex gap-5">
 
                   {/* ================= FOOD IMAGE ================= */}
 
                   <div className="w-28 h-28 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-
                     {item.image ? (
                       <img
                         src={
@@ -277,18 +317,13 @@ const Cart = () => {
                         />
                       </div>
                     )}
-
                   </div>
-
 
                   {/* ================= ITEM DETAILS ================= */}
 
                   <div className="flex-1">
-
                     <div className="flex justify-between gap-4">
-
                       <div>
-
                         <h2 className="text-xl font-bold text-gray-900">
                           {item.name}
                         </h2>
@@ -296,31 +331,26 @@ const Cart = () => {
                         <p className="text-sm text-[#166534] font-semibold mt-1">
                           {item.category}
                         </p>
-
                       </div>
-
 
                       {/* Remove */}
 
                       <button
                         onClick={() =>
-                          removeItem(item._id)
+                          removeItem(item.menuItem)
                         }
                         className="text-gray-400 hover:text-red-600 transition"
                         title="Remove item"
                       >
                         <Trash2 size={20} />
                       </button>
-
                     </div>
-
 
                     {/* ================= PRICE ================= */}
 
                     <p className="text-lg font-bold text-[#166534] mt-3">
                       ₹{item.price}
                     </p>
-
 
                     {/* ================= QUANTITY + TOTAL ================= */}
 
@@ -329,11 +359,10 @@ const Cart = () => {
                       {/* Quantity Controls */}
 
                       <div className="flex items-center border border-[#E8E1D0] rounded-lg overflow-hidden">
-
                         <button
                           onClick={() =>
                             updateCart(
-                              item._id,
+                              item.menuItem,
                               (item.quantity || 1) - 1
                             )
                           }
@@ -356,7 +385,7 @@ const Cart = () => {
                         <button
                           onClick={() =>
                             updateCart(
-                              item._id,
+                              item.menuItem,
                               (item.quantity || 1) + 1
                             )
                           }
@@ -364,9 +393,7 @@ const Cart = () => {
                         >
                           <Plus size={16} />
                         </button>
-
                       </div>
-
 
                       {/* Item Total */}
 
@@ -375,85 +402,54 @@ const Cart = () => {
                         {Number(item.price) *
                           (item.quantity || 1)}
                       </p>
-
                     </div>
-
                   </div>
-
                 </div>
-
               </div>
-
             ))}
-
           </div>
-
 
           {/* ================= ORDER SUMMARY ================= */}
 
           <div className="lg:col-span-1">
-
             <div className="bg-white border border-[#E8E1D0] rounded-2xl shadow-md p-6 sticky top-28">
-
               <h2 className="text-2xl font-bold text-gray-900">
                 Order Summary
               </h2>
 
               <div className="border-t border-[#E8E1D0] my-5" />
 
-
               {/* Items */}
 
               <div className="flex justify-between text-gray-600">
+                <span>Items</span>
 
-                <span>
-                  Items
-                </span>
-
-                <span>
-                  {totalItems}
-                </span>
-
+                <span>{totalItems}</span>
               </div>
-
 
               {/* Subtotal */}
 
               <div className="flex justify-between text-gray-600 mt-3">
+                <span>Subtotal</span>
 
-                <span>
-                  Subtotal
-                </span>
-
-                <span>
-                  ₹{totalPrice}
-                </span>
-
+                <span>₹{totalPrice}</span>
               </div>
-
 
               {/* Delivery */}
 
               <div className="flex justify-between text-gray-600 mt-3">
-
-                <span>
-                  Delivery
-                </span>
+                <span>Delivery</span>
 
                 <span className="text-[#166534] font-semibold">
                   Free
                 </span>
-
               </div>
 
-
               <div className="border-t border-[#E8E1D0] my-5" />
-
 
               {/* Total */}
 
               <div className="flex justify-between items-center">
-
                 <span className="text-lg font-bold text-gray-900">
                   Total
                 </span>
@@ -461,9 +457,7 @@ const Cart = () => {
                 <span className="text-2xl font-extrabold text-[#166534]">
                   ₹{totalPrice}
                 </span>
-
               </div>
-
 
               {/* Checkout */}
 
@@ -474,7 +468,6 @@ const Cart = () => {
                 Proceed to Checkout
               </Link>
 
-
               {/* Continue Shopping */}
 
               <Link
@@ -484,15 +477,10 @@ const Cart = () => {
                 <ArrowLeft size={18} />
                 Continue Shopping
               </Link>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 };

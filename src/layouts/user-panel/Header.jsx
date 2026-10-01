@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
+import api from "../../api/axios";
+
 import {
   House,
   Utensils,
@@ -41,61 +43,95 @@ const Header = () => {
 
   const isAdmin = token && role === "admin";
 
-  // ================= CART & WISHLIST COUNT =================
+  // ================= CART COUNT =================
 
-  const getCartCount = () => {
+  const [cartCount, setCartCount] = useState(0);
+
+  const fetchCartCount = async () => {
+    const currentToken = Cookies.get("token");
+
+    if (!currentToken) {
+      setCartCount(0);
+      return;
+    }
+
     try {
-      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+      const response = await api.get("/cart", {
+        headers: {
+          Authorization: `Bearer ${currentToken}`,
+        },
+      });
 
-      return cart.reduce(
-        (total, item) => total + (item.quantity || 1),
-        0
-      );
-    } catch {
-      return 0;
+      if (response.data.success) {
+        const cartItems = response.data.data || [];
+
+        const totalQuantity = cartItems.reduce(
+          (total, item) => total + (item.quantity || 1),
+          0
+        );
+
+        setCartCount(totalQuantity);
+      } else {
+        setCartCount(0);
+      }
+    } catch (error) {
+      console.error("Failed to fetch cart count:", error);
+      setCartCount(0);
     }
   };
 
-  const getWishlistCount = () => {
-    try {
-      const wishlist =
-        JSON.parse(localStorage.getItem("wishlist")) || [];
+  // ================= WISHLIST COUNT =================
 
-      return wishlist.length;
-    } catch {
-      return 0;
+  const [wishlistCount, setWishlistCount] = useState(0);
+
+  const fetchWishlistCount = async () => {
+    const currentToken = Cookies.get("token");
+
+    if (!currentToken) {
+      setWishlistCount(0);
+      return;
+    }
+
+    try {
+      const response = await api.get("/wishlist", {
+        headers: {
+          Authorization: `Bearer ${currentToken}`,
+        },
+      });
+
+      if (response.data.success) {
+        const wishlistItems = response.data.data || [];
+
+        setWishlistCount(wishlistItems.length);
+      } else {
+        setWishlistCount(0);
+      }
+    } catch (error) {
+      console.error("Failed to fetch wishlist count:", error);
+      setWishlistCount(0);
     }
   };
-
-  const [cartCount, setCartCount] = useState(getCartCount);
-  const [wishlistCount, setWishlistCount] =
-    useState(getWishlistCount);
 
   // ================= UPDATE COUNTS =================
 
   useEffect(() => {
     const updateCounts = () => {
-      setCartCount(getCartCount());
-      setWishlistCount(getWishlistCount());
+      fetchCartCount();
+      fetchWishlistCount();
     };
 
     updateCounts();
 
     window.addEventListener("storage", updateCounts);
-
     window.addEventListener("cartUpdated", updateCounts);
     window.addEventListener("wishlistUpdated", updateCounts);
 
     return () => {
       window.removeEventListener("storage", updateCounts);
-
       window.removeEventListener("cartUpdated", updateCounts);
-      window.removeEventListener(
-        "wishlistUpdated",
-        updateCounts
-      );
+      window.removeEventListener("wishlistUpdated", updateCounts);
     };
-  }, [location.pathname]);
+  }, [location.pathname, token]);
 
   // ================= LOGOUT =================
 
@@ -104,6 +140,8 @@ const Header = () => {
     Cookies.remove("role");
     Cookies.remove("user");
 
+    setCartCount(0);
+    setWishlistCount(0);
     setMobileMenuOpen(false);
 
     toast.success("Logged out successfully");
@@ -146,7 +184,6 @@ const Header = () => {
           />
         </Link>
 
-
         {/* =====================================================
             DESKTOP NAVIGATION
         ===================================================== */}
@@ -167,7 +204,6 @@ const Header = () => {
             <span>Home</span>
           </Link>
 
-
           {/* ================= MENU ================= */}
 
           <Link
@@ -181,7 +217,6 @@ const Header = () => {
             <Utensils size={18} />
             <span>Menu</span>
           </Link>
-
 
           {/* =================================================
               LOGGED IN USER
@@ -211,7 +246,6 @@ const Header = () => {
                 )}
               </Link>
 
-
               {/* ================= WISHLIST ================= */}
 
               <Link
@@ -233,7 +267,6 @@ const Header = () => {
                 )}
               </Link>
 
-
               {/* ================= MY ORDERS ================= */}
 
               <Link
@@ -248,7 +281,6 @@ const Header = () => {
 
                 <span>My Orders</span>
               </Link>
-
 
               {/* ================= ADMIN DASHBOARD ================= */}
 
@@ -267,7 +299,6 @@ const Header = () => {
                 </Link>
               )}
 
-
               {/* ================= USER ================= */}
 
               <div className="flex items-center gap-2 ml-2 px-4 py-2 bg-[#F3F7ED] rounded-lg">
@@ -282,7 +313,6 @@ const Header = () => {
                 </span>
 
               </div>
-
 
               {/* ================= LOGOUT ================= */}
 
@@ -315,7 +345,6 @@ const Header = () => {
                 <span>Login</span>
               </Link>
 
-
               {/* ================= REGISTER ================= */}
 
               <Link
@@ -331,7 +360,6 @@ const Header = () => {
           )}
 
         </nav>
-
 
         {/* =====================================================
             MOBILE MENU BUTTON
@@ -352,7 +380,6 @@ const Header = () => {
         </button>
 
       </div>
-
 
       {/* =====================================================
           MOBILE NAVIGATION
@@ -379,7 +406,6 @@ const Header = () => {
               <span>Home</span>
             </Link>
 
-
             {/* ================= MENU ================= */}
 
             <Link
@@ -395,7 +421,6 @@ const Header = () => {
 
               <span>Menu</span>
             </Link>
-
 
             {token ? (
               <>
@@ -428,7 +453,6 @@ const Header = () => {
 
                 </Link>
 
-
                 {/* ================= WISHLIST ================= */}
 
                 <Link
@@ -437,7 +461,7 @@ const Header = () => {
                   className={`relative flex items-center justify-between px-4 py-3 rounded-lg font-medium transition ${
                     isActive("/wishlist")
                       ? "bg-[#166534] text-white"
-                      : "text-gray-700 hover:bg-[#ECFDF5] hover:text-[#166534]"
+                      : "text-gray-700 hover:text-[#166534] hover:bg-[#ECFDF5]"
                   }`}
                 >
 
@@ -457,7 +481,6 @@ const Header = () => {
 
                 </Link>
 
-
                 {/* ================= MY ORDERS ================= */}
 
                 <Link
@@ -466,14 +489,13 @@ const Header = () => {
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition ${
                     isActive("/orders")
                       ? "bg-[#166534] text-white"
-                      : "text-gray-700 hover:bg-[#ECFDF5] hover:text-[#166534]"
+                      : "text-gray-700 hover:text-[#166534] hover:bg-[#ECFDF5]"
                   }`}
                 >
                   <ClipboardList size={19} />
 
                   <span>My Orders</span>
                 </Link>
-
 
                 {/* ================= ADMIN DASHBOARD ================= */}
 
@@ -493,7 +515,6 @@ const Header = () => {
                   </Link>
                 )}
 
-
                 {/* ================= USER ================= */}
 
                 <div className="flex items-center gap-3 px-4 py-3 mt-3 bg-[#F3F7ED] rounded-lg">
@@ -508,7 +529,6 @@ const Header = () => {
                   </span>
 
                 </div>
-
 
                 {/* ================= LOGOUT ================= */}
 
@@ -536,7 +556,6 @@ const Header = () => {
 
                   <span>Login</span>
                 </Link>
-
 
                 {/* ================= REGISTER ================= */}
 

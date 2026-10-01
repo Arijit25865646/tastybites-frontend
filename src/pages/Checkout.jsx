@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
+
 import {
   ArrowLeft,
   ShoppingBag,
@@ -20,17 +21,11 @@ const Checkout = () => {
   // ================= LOGIN CHECK =================
 
   const token = Cookies.get("token");
- 
 
-  // ================= CART =================
+  // ================= CART STATE =================
 
-  const [cartItems] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("cart")) || [];
-    } catch {
-      return [];
-    }
-  });
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(!!token);
 
   // ================= FORM STATE =================
 
@@ -45,6 +40,46 @@ const Checkout = () => {
   // ================= ORDER LOADING =================
 
   const [placingOrder, setPlacingOrder] = useState(false);
+
+  // ================= FETCH CART =================
+
+  useEffect(() => {
+    const fetchCart = async () => {
+      const currentToken = Cookies.get("token");
+
+      if (!currentToken) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await api.get("/cart", {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        });
+
+        if (response.data.success) {
+          setCartItems(response.data.data || []);
+        } else {
+          setCartItems([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch cart:", error);
+
+        toast.error(
+          error.response?.data?.message ||
+            "Failed to load cart"
+        );
+
+        setCartItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCart();
+  }, []);
 
   // ================= HANDLE INPUT =================
 
@@ -68,24 +103,28 @@ const Checkout = () => {
   const subtotal = cartItems.reduce(
     (total, item) =>
       total +
-      Number(item.price) *
-        (item.quantity || 1),
+      Number(item.price) * (item.quantity || 1),
     0
   );
 
   const deliveryCharge = 0;
 
-  const totalPrice =
-    subtotal + deliveryCharge;
+  const totalPrice = subtotal + deliveryCharge;
 
   // ================= PLACE ORDER =================
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
 
-    // -------------------------------------------------
-    // Validate customer details
-    // -------------------------------------------------
+    const currentToken = Cookies.get("token");
+
+    if (!currentToken) {
+      toast.error("Please login first");
+      navigate("/login");
+      return;
+    }
+
+    // ================= VALIDATE CUSTOMER DETAILS =================
 
     if (!formData.name.trim()) {
       toast.error("Please enter your name");
@@ -94,6 +133,11 @@ const Checkout = () => {
 
     if (!formData.phone.trim()) {
       toast.error("Please enter your phone number");
+      return;
+    }
+
+    if (!/^[0-9]{10}$/.test(formData.phone.trim())) {
+      toast.error("Please enter a valid 10-digit phone number");
       return;
     }
 
@@ -107,35 +151,39 @@ const Checkout = () => {
       return;
     }
 
-    if (!formData.pincode.trim()) {
-      toast.error("Please enter your PIN code");
+    if (!/^[0-9]{6}$/.test(formData.pincode.trim())) {
+      toast.error("Please enter a valid 6-digit PIN code");
       return;
     }
 
-    // -------------------------------------------------
-    // Check cart
-    // -------------------------------------------------
+    // ================= CHECK CART =================
 
     if (cartItems.length === 0) {
       toast.error("Your cart is empty");
       return;
     }
 
+    // Make sure every cart item has a valid MenuItem ID.
+    const invalidItem = cartItems.some(
+      (item) => !item.menuItem
+    );
+
+    if (invalidItem) {
+      toast.error("One or more cart items have an invalid ID");
+      return;
+    }
+
     try {
       setPlacingOrder(true);
 
-      // -------------------------------------------------
-      // Prepare only required data for backend
-      // -------------------------------------------------
+      // ================= PREPARE ORDER ITEMS =================
 
       const orderItems = cartItems.map((item) => ({
-        menuItem: item._id,
+        menuItem: item.menuItem,
         quantity: item.quantity || 1,
       }));
 
-      // -------------------------------------------------
-      // Send order to backend
-      // -------------------------------------------------
+      // ================= CREATE ORDER =================
 
       const response = await api.post(
         "/orders",
@@ -144,42 +192,65 @@ const Checkout = () => {
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${currentToken}`,
           },
         }
       );
 
-      // -------------------------------------------------
-      // Order successfully created
-      // -------------------------------------------------
-
-      if (response.data.success) {
-        const createdOrder =
-          response.data.data;
-
-        // Store ONLY the latest backend order
-        // temporarily for OrderSuccess page.
-        localStorage.setItem(
-          "lastOrder",
-          JSON.stringify(createdOrder)
+      if (!response.data.success) {
+        toast.error(
+          response.data.message || "Failed to place order"
         );
-
-        // Clear cart after successful order
-        localStorage.removeItem("cart");
-
-        toast.success(
-          response.data.message ||
-            "Order placed successfully!"
-        );
-
-        // Go to success page
-        navigate("/order-success");
+        return;
       }
-    } catch (error) {
-      console.error(
-        "Place Order Error:",
-        error
+
+      // ================= ORDER CREATED =================
+
+      const createdOrder = response.data.data;
+
+      // Keep the latest order temporarily for OrderSuccess.
+      localStorage.setItem(
+        "lastOrder",
+        JSON.stringify(createdOrder)
       );
+
+      // ================= CLEAR MONGODB CART =================
+
+      try {
+        await api.delete("/cart", {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        });
+
+        setCartItems([]);
+
+        // Update header cart counter.
+        window.dispatchEvent(
+          new Event("cartUpdated")
+        );
+      } catch (clearError) {
+        console.error(
+          "Order created, but cart clearing failed:",
+          clearError
+        );
+
+        toast.error(
+          "Order placed, but your cart could not be cleared. Please refresh your cart."
+        );
+      }
+
+      // ================= SUCCESS =================
+
+      toast.success(
+        response.data.message ||
+          "Order placed successfully!"
+      );
+
+      navigate("/order-success");
+
+    } catch (error) {
+      console.error("Place Order Error:", error);
 
       toast.error(
         error.response?.data?.message ||
@@ -199,12 +270,10 @@ const Checkout = () => {
         <div className="bg-white border border-[#E8E1D0] rounded-3xl shadow-md p-10 max-w-md text-center">
 
           <div className="w-20 h-20 bg-[#ECFDF5] rounded-full flex items-center justify-center mx-auto">
-
             <ShoppingBag
               size={38}
               className="text-[#166534]"
             />
-
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 mt-6">
@@ -228,6 +297,26 @@ const Checkout = () => {
     );
   }
 
+  // ================= LOADING =================
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+
+        <div className="text-center">
+
+          <div className="w-10 h-10 border-4 border-[#166534] border-t-transparent rounded-full animate-spin mx-auto" />
+
+          <p className="text-gray-500 mt-4">
+            Loading checkout...
+          </p>
+
+        </div>
+
+      </div>
+    );
+  }
+
   // ================= EMPTY CART =================
 
   if (cartItems.length === 0) {
@@ -237,12 +326,10 @@ const Checkout = () => {
         <div className="text-center">
 
           <div className="w-20 h-20 bg-[#ECFDF5] rounded-full flex items-center justify-center mx-auto">
-
             <ShoppingBag
               size={38}
               className="text-[#166534]"
             />
-
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900 mt-6">
@@ -317,16 +404,13 @@ const Checkout = () => {
                 <div className="flex items-center gap-3 mb-6">
 
                   <div className="w-11 h-11 rounded-xl bg-[#ECFDF5] flex items-center justify-center">
-
                     <MapPin
                       size={21}
                       className="text-[#166534]"
                     />
-
                   </div>
 
                   <div>
-
                     <h2 className="text-xl font-bold text-gray-900">
                       Delivery Details
                     </h2>
@@ -334,7 +418,6 @@ const Checkout = () => {
                     <p className="text-sm text-gray-500">
                       Where should we deliver your order?
                     </p>
-
                   </div>
 
                 </div>
@@ -387,7 +470,8 @@ const Checkout = () => {
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        placeholder="Enter phone number"
+                        placeholder="Enter 10-digit phone number"
+                        maxLength={10}
                         className="w-full pl-10 pr-4 py-3 border border-[#E8E1D0] rounded-xl outline-none focus:border-[#166534] focus:ring-2 focus:ring-[#166534]/10"
                       />
 
@@ -448,7 +532,8 @@ const Checkout = () => {
                       name="pincode"
                       value={formData.pincode}
                       onChange={handleChange}
-                      placeholder="Enter PIN code"
+                      placeholder="Enter 6-digit PIN code"
+                      maxLength={6}
                       className="w-full px-4 py-3 border border-[#E8E1D0] rounded-xl outline-none focus:border-[#166534] focus:ring-2 focus:ring-[#166534]/10"
                     />
 
@@ -458,23 +543,20 @@ const Checkout = () => {
 
               </div>
 
-              {/* Payment */}
+              {/* ================= PAYMENT ================= */}
 
               <div className="bg-white border border-[#E8E1D0] rounded-2xl shadow-sm p-7">
 
                 <div className="flex items-center gap-3">
 
                   <div className="w-11 h-11 rounded-xl bg-[#ECFDF5] flex items-center justify-center">
-
                     <CreditCard
                       size={21}
                       className="text-[#166534]"
                     />
-
                   </div>
 
                   <div>
-
                     <h2 className="text-xl font-bold text-gray-900">
                       Payment Method
                     </h2>
@@ -482,7 +564,6 @@ const Checkout = () => {
                     <p className="text-sm text-gray-500">
                       Payment integration will be added later.
                     </p>
-
                   </div>
 
                 </div>
@@ -497,7 +578,6 @@ const Checkout = () => {
                     />
 
                     <div>
-
                       <p className="font-semibold text-gray-900">
                         Cash on Delivery
                       </p>
@@ -505,7 +585,6 @@ const Checkout = () => {
                       <p className="text-sm text-gray-500">
                         Pay when your order arrives.
                       </p>
-
                     </div>
 
                   </div>
@@ -533,7 +612,7 @@ const Checkout = () => {
                   {cartItems.map((item) => (
 
                     <div
-                      key={item._id}
+                      key={item.menuItem}
                       className="flex items-center gap-3"
                     >
 
@@ -588,13 +667,11 @@ const Checkout = () => {
                 </div>
 
                 <div className="flex justify-between text-gray-600 mt-3">
-
                   <span>Delivery</span>
 
                   <span className="text-[#166534] font-semibold">
                     Free
                   </span>
-
                 </div>
 
                 <div className="border-t border-[#E8E1D0] my-5" />

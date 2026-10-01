@@ -20,32 +20,23 @@ const MenuDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const token = Cookies.get("token");
+
   const [menuItem, setMenuItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
 
-  // ================= CART =================
-  const [, setCartItems] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("cart")) || [];
-    } catch {
-      return [];
-    }
-  });
+  // =====================================================
+  // WISHLIST STATE
+  // =====================================================
 
-  // ================= WISHLIST =================
-  const [wishlistItems, setWishlistItems] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("wishlist")) || [];
-    } catch {
-      return [];
-    }
-  });
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
-  // ================= FETCH MENU ITEM =================
+  // =====================================================
+  // FETCH MENU ITEM
+  // =====================================================
+
   useEffect(() => {
-    const token = Cookies.get("token");
-
     if (!token) {
       toast.error("Please login to view menu details");
       navigate("/login");
@@ -60,6 +51,8 @@ const MenuDetails = () => {
           setMenuItem(response.data.data);
         }
       } catch (error) {
+        console.error("Fetch menu item error:", error);
+
         toast.error(
           error.response?.data?.message ||
             "Failed to load menu item"
@@ -70,14 +63,52 @@ const MenuDetails = () => {
     };
 
     fetchMenuItem();
-  }, [id, navigate]);
+  }, [id, navigate, token]);
 
-  // ================= WISHLIST STATUS =================
-  const isWishlisted = wishlistItems.some(
-    (item) => item._id === menuItem?._id
-  );
+  // =====================================================
+  // FETCH WISHLIST STATUS
+  // =====================================================
 
-  // ================= QUANTITY =================
+  useEffect(() => {
+    const fetchWishlistStatus = async () => {
+      const currentToken = Cookies.get("token");
+
+      if (!currentToken || !id) {
+        return;
+      }
+
+      try {
+        const response = await api.get("/wishlist", {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        });
+
+        if (response.data.success) {
+          const wishlistItems = response.data.data || [];
+
+          const exists = wishlistItems.some(
+            (item) =>
+              String(item.menuItem || item._id) === String(id)
+          );
+
+          setIsWishlisted(exists);
+        }
+      } catch (error) {
+        console.error(
+          "Fetch wishlist status error:",
+          error
+        );
+      }
+    };
+
+    fetchWishlistStatus();
+  }, [id]);
+
+  // =====================================================
+  // QUANTITY
+  // =====================================================
+
   const increaseQuantity = () => {
     setQuantity((prev) => prev + 1);
   };
@@ -86,139 +117,221 @@ const MenuDetails = () => {
     setQuantity((prev) => Math.max(1, prev - 1));
   };
 
-  // ================= WISHLIST =================
-  const handleWishlist = () => {
+  // =====================================================
+  // WISHLIST
+  // =====================================================
+
+  const handleWishlist = async () => {
     if (!menuItem) return;
 
-    setWishlistItems((prev) => {
-      const exists = prev.some(
-        (item) => item._id === menuItem._id
-      );
+    const currentToken = Cookies.get("token");
 
-      let updatedWishlist;
+    if (!currentToken) {
+      toast.error("Please login to continue");
+      navigate("/login");
+      return;
+    }
 
-      if (exists) {
-        updatedWishlist = prev.filter(
-          (item) => item._id !== menuItem._id
+    try {
+      // =================================================
+      // REMOVE FROM WISHLIST
+      // =================================================
+
+      if (isWishlisted) {
+        await api.delete(`/wishlist/${menuItem._id}`, {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        });
+
+        setIsWishlisted(false);
+
+        window.dispatchEvent(
+          new Event("wishlistUpdated")
         );
 
         toast.success("Removed from wishlist");
-      } else {
-        updatedWishlist = [...prev, menuItem];
 
-        toast.success("Added to wishlist");
+        return;
       }
 
-      localStorage.setItem(
-        "wishlist",
-        JSON.stringify(updatedWishlist)
-      );
-      window.dispatchEvent(new Event("wishlistUpdated"));
+      // =================================================
+      // ADD TO WISHLIST
+      // =================================================
 
-      return updatedWishlist;
-    });
+      await api.post(
+        "/wishlist",
+        {
+          menuItem: menuItem._id,
+          name: menuItem.name,
+          price: menuItem.price,
+          category: menuItem.category,
+          image: menuItem.image,
+          availability: menuItem.availability,
+          description: menuItem.description,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        }
+      );
+
+      setIsWishlisted(true);
+
+      window.dispatchEvent(
+        new Event("wishlistUpdated")
+      );
+
+      toast.success("Added to wishlist");
+    } catch (error) {
+      console.error(
+        "Wishlist error:",
+        error
+      );
+
+      // If backend says item already exists,
+      // keep UI state correct.
+      if (error.response?.status === 409) {
+        setIsWishlisted(true);
+
+        toast.error(
+          error.response?.data?.message ||
+            "Item is already in wishlist"
+        );
+
+        return;
+      }
+
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to update wishlist"
+      );
+    }
   };
 
-  // ================= ADD TO CART =================
-  const handleAddToCart = () => {
+  // =====================================================
+  // ADD TO CART
+  // =====================================================
+
+  const handleAddToCart = async () => {
     if (!menuItem) return;
+
+    const currentToken = Cookies.get("token");
+
+    if (!currentToken) {
+      toast.error("Please login to continue");
+      navigate("/login");
+      return;
+    }
 
     if (!menuItem.availability) {
       toast.error("This item is currently unavailable");
       return;
     }
 
-    setCartItems((prev) => {
-      const existingItem = prev.find(
-        (item) => item._id === menuItem._id
-      );
-
-      let updatedCart;
-
-      if (existingItem) {
-        updatedCart = prev.map((item) =>
-          item._id === menuItem._id
-            ? {
-                ...item,
-                quantity: item.quantity + quantity,
-              }
-            : item
-        );
-      } else {
-        updatedCart = [
-          ...prev,
-          {
-            ...menuItem,
-            quantity,
+    try {
+      await api.post(
+        "/cart",
+        {
+          menuItem: menuItem._id,
+          name: menuItem.name,
+          price: menuItem.price,
+          category: menuItem.category,
+          image: menuItem.image,
+          quantity: quantity,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
           },
-        ];
-      }
-
-      localStorage.setItem(
-        "cart",
-        JSON.stringify(updatedCart)
+        }
       );
-      window.dispatchEvent(new Event("cartUpdated"));
 
-      return updatedCart;
-    });
+      window.dispatchEvent(
+        new Event("cartUpdated")
+      );
 
-    toast.success(
-      `${quantity} ${
-        quantity === 1 ? "item" : "items"
-      } added to cart`
-    );
+      toast.success(
+        `${quantity} ${
+          quantity === 1 ? "item" : "items"
+        } added to cart`
+      );
+    } catch (error) {
+      console.error(
+        "Add to cart error:",
+        error
+      );
+
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to add item to cart"
+      );
+    }
   };
 
-  // ================= BUY NOW =================
-  const handleBuyNow = () => {
+  // =====================================================
+  // BUY NOW
+  // =====================================================
+
+  const handleBuyNow = async () => {
     if (!menuItem) return;
+
+    const currentToken = Cookies.get("token");
+
+    if (!currentToken) {
+      toast.error("Please login to continue");
+      navigate("/login");
+      return;
+    }
 
     if (!menuItem.availability) {
       toast.error("This item is currently unavailable");
       return;
     }
 
-    setCartItems((prev) => {
-      const existingItem = prev.find(
-        (item) => item._id === menuItem._id
-      );
-
-      let updatedCart;
-
-      if (existingItem) {
-        updatedCart = prev.map((item) =>
-          item._id === menuItem._id
-            ? {
-                ...item,
-                quantity: item.quantity + quantity,
-              }
-            : item
-        );
-      } else {
-        updatedCart = [
-          ...prev,
-          {
-            ...menuItem,
-            quantity,
+    try {
+      await api.post(
+        "/cart",
+        {
+          menuItem: menuItem._id,
+          name: menuItem.name,
+          price: menuItem.price,
+          category: menuItem.category,
+          image: menuItem.image,
+          quantity: quantity,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
           },
-        ];
-      }
-
-      localStorage.setItem(
-        "cart",
-        JSON.stringify(updatedCart)
+        }
       );
 
-      return updatedCart;
-    });
+      window.dispatchEvent(
+        new Event("cartUpdated")
+      );
 
-    toast.success("Added to cart");
+      toast.success("Added to cart");
 
-    navigate("/cart");
+      navigate("/cart");
+    } catch (error) {
+      console.error(
+        "Buy now error:",
+        error
+      );
+
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to add item to cart"
+      );
+    }
   };
 
-  // ================= LOADING =================
+  // =====================================================
+  // LOADING
+  // =====================================================
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FFFCF2] flex items-center justify-center">
@@ -235,16 +348,21 @@ const MenuDetails = () => {
     );
   }
 
-  // ================= NOT FOUND =================
+  // =====================================================
+  // NOT FOUND
+  // =====================================================
+
   if (!menuItem) {
     return (
       <div className="min-h-screen bg-[#FFFCF2] flex flex-col items-center justify-center px-6">
 
         <div className="w-16 h-16 rounded-full bg-[#ECFDF5] flex items-center justify-center">
+
           <Utensils
             size={30}
             className="text-[#166534]"
           />
+
         </div>
 
         <p className="text-xl font-bold text-gray-800 mt-5">
@@ -269,12 +387,17 @@ const MenuDetails = () => {
 
   const totalPrice = menuItem.price * quantity;
 
+  // =====================================================
+  // PAGE
+  // =====================================================
+
   return (
     <div className="min-h-screen bg-[#FFFCF2] px-6 py-12">
 
       <div className="max-w-6xl mx-auto">
 
         {/* ================= BACK ================= */}
+
         <Link
           to="/menu"
           className="inline-flex items-center gap-2 text-gray-600 hover:text-[#166534] font-semibold mb-6 transition"
@@ -284,11 +407,13 @@ const MenuDetails = () => {
         </Link>
 
         {/* ================= MAIN CARD ================= */}
+
         <div className="bg-white rounded-3xl overflow-hidden border border-[#E8E1D0] shadow-lg">
 
           <div className="grid grid-cols-1 md:grid-cols-2">
 
             {/* ================= IMAGE ================= */}
+
             <div className="relative h-80 md:h-[520px] bg-gray-100">
 
               <img
@@ -298,6 +423,7 @@ const MenuDetails = () => {
               />
 
               {/* CATEGORY */}
+
               <div className="absolute top-5 left-5">
 
                 <span className="inline-flex items-center gap-2 bg-white/95 text-[#166534] px-4 py-2 rounded-full font-bold text-sm shadow-md">
@@ -311,6 +437,7 @@ const MenuDetails = () => {
               </div>
 
               {/* ================= HEART WISHLIST ================= */}
+
               <button
                 onClick={handleWishlist}
                 className={`absolute top-5 right-5 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 ${
@@ -339,19 +466,23 @@ const MenuDetails = () => {
             </div>
 
             {/* ================= DETAILS ================= */}
+
             <div className="p-7 md:p-10 flex flex-col justify-center">
 
               {/* CATEGORY */}
+
               <p className="text-[#166534] font-bold tracking-widest text-sm uppercase mb-3">
                 {menuItem.category}
               </p>
 
               {/* NAME */}
+
               <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
                 {menuItem.name}
               </h1>
 
               {/* DESCRIPTION */}
+
               <div className="mt-6">
 
                 <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">
@@ -365,6 +496,7 @@ const MenuDetails = () => {
               </div>
 
               {/* PRICE + AVAILABILITY */}
+
               <div className="flex items-center justify-between mt-8 pt-6 border-t border-[#E8E1D0]">
 
                 <div>
@@ -408,6 +540,7 @@ const MenuDetails = () => {
               </div>
 
               {/* ================= QUANTITY ================= */}
+
               {menuItem.availability && (
 
                 <div className="mt-7">
@@ -450,6 +583,7 @@ const MenuDetails = () => {
               )}
 
               {/* ================= CART + BUY ================= */}
+
               <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
 
                 <button
@@ -479,6 +613,7 @@ const MenuDetails = () => {
               </div>
 
               {/* ================= BIG WISHLIST BUTTON ================= */}
+
               <button
                 onClick={handleWishlist}
                 className={`w-full mt-4 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold border-2 transition ${
@@ -504,6 +639,7 @@ const MenuDetails = () => {
               </button>
 
               {/* ================= CONTINUE BROWSING ================= */}
+
               <Link
                 to="/menu"
                 className="flex items-center justify-center gap-2 w-full mt-3 text-gray-600 hover:text-[#166534] py-2.5 rounded-xl font-semibold transition"
